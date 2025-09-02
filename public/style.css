@@ -1,0 +1,639 @@
+:root {
+    --primary-bg: #1A1A2E; /* Fondo oscuro principal */
+    --secondary-bg: #2C2C40; /* Fondo para secciones, tarjetas */
+    --tertiary-bg: #3A3A50; /* Fondo para contenedores de botones, inputs */
+    --accent-color: #00BCD4; /* Cian brillante, para títulos, activos */
+    --text-color: #E0E0E0; /* Texto claro general */
+    --text-light: #B0B0B0; /* Texto más suave */
+    --border-color: #44445A; /* Bordes sutiles */
+    --button-bg-primary: #007BFF; /* Azul para botones primarios */
+    --button-hover-primary: #0056b3; /* Azul oscuro al pasar el ratón */
+    --button-bg-secondary: #555570; /* Gris oscuro para botones secundarios */
+    --button-hover-secondary: #6B6B8A; /* Gris más claro al pasar el ratón */
+    --modal-bg: rgba(0, 0, 0, 0.7); /* Fondo semi-transparente para el modal */
+    --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.4); /* Sombra para tarjetas */
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--primary-bg);
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column; /* Cambiado a column para que el header esté arriba y el footer abajo */
+    min-height: 100vh;
+}
+
+header {
+    background-color: var(--secondary-bg);
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    color: var(--accent-color); /* Color del texto del header */
+}
+
+h1, h2, h3 {
+    color: var(--accent-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3); /* Sombra de texto sutil */
+}
+
+/* Contenedor principal de la aplicación (sidebar + contenido) */
+.app-container {
+    display: flex;
+    flex-grow: 1; /* Permite que el contenedor tome el espacio restante */
+    margin-top: 20px; /* Espacio debajo del header */
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-bottom: 20px; /* Espacio antes del footer */
+    background-color: var(--secondary-bg);
+    border-radius: 10px;
+    box-shadow: var(--card-shadow);
+    overflow: hidden; /* Para contener los elementos internos con border-radius */
+}
+
+/* Barra de Navegación Lateral */
+.sidebar-nav {
+    width: 200px; /* Ancho fijo para la barra lateral */
+    background-color: var(--tertiary-bg);
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid var(--border-color);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+}
+
+.nav-button {
+    background-color: transparent;
+    color: var(--text-color);
+    border: none;
+    padding: 15px 10px;
+    margin: 5px 0;
+    cursor: pointer;
+    font-size: 1.1em;
+    width: 90%; /* Ocupa casi todo el ancho de la sidebar */
+    text-align: left; /* Alinea el texto a la izquierda */
+    border-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    display: flex; /* Para íconos si los añades */
+    align-items: center;
+    gap: 10px; /* Espacio entre ícono y texto */
+}
+
+/* Puedes añadir estilos para íconos aquí si los implementas (por ejemplo, con Font Awesome) */
+/* .nav-button i { margin-right: 8px; } */
+
+
+.nav-button:hover {
+    background-color: var(--button-hover-secondary);
+    color: white;
+}
+
+.nav-button.active {
+    background-color: var(--accent-color);
+    color: var(--primary-bg);
+    font-weight: bold;
+}
+
+/* Área de Contenido Principal */
+.content-area {
+    flex-grow: 1; /* Ocupa el espacio restante */
+    padding: 20px;
+    overflow-y: auto; /* Permite scroll si el contenido es muy largo */
+}
+
+.section {
+    display: none;
+    padding: 0; /* Ya tenemos padding en content-area */
+}
+
+.section.active {
+    display: block;
+}
+
+/* Estilos de Botones Generales */
+button {
+    background-color: var(--button-bg-primary);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    flex-shrink: 0; /* Previene que los botones se achiquen en flex/grid */
+}
+
+button:hover {
+    background-color: var(--button-hover-primary);
+    transform: translateY(-1px); /* Efecto ligero de elevación */
+}
+
+button:active {
+    transform: translateY(0); /* Sin elevación al hacer clic */
+}
+
+/* Estilos para grupos de controles/botones */
+.controls-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: flex-start; /* Alineación a la izquierda para los grupos */
+}
+
+/* Contenedor de Gráfica y Controles (con Grid para mejor distribución) */
+.graph-and-controls {
+    display: grid;
+    grid-template-columns: 2.5fr 1fr; /* Gráfica ocupa más espacio que los controles */
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.graph-container {
+    background-color: var(--tertiary-bg);
+    padding: 15px;
+    border-radius: 8px;
+    min-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.4); /* Sombra interna para el canvas */
+}
+
+canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+.graph-controls-panel {
+    background-color: var(--tertiary-bg);
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Espacio entre grupos de controles */
+    box-shadow: var(--card-shadow);
+}
+.graph-controls-panel h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--text-color); /* Color para subtítulos de paneles */
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+/* Estilos para la visualización de datos */
+.data-display {
+    background-color: var(--tertiary-bg);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+.data-display p {
+    margin: 8px 0;
+    color: var(--text-light);
+    font-size: 1.05em;
+}
+
+.data-display p span {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.parameters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* 2 columnas o más si hay espacio */
+    gap: 15px;
+}
+
+/* Estilos para tarjetas/contenedores generales (carga de datos, acerca de, historial) */
+.card {
+    background-color: var(--tertiary-bg);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+.card h3 {
+    color: var(--accent-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+/* --- NUEVOS ESTILOS PARA FORMULARIO DE PROBETA --- */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-light);
+    font-weight: bold;
+}
+
+#areaTransversalResult {
+    font-size: 1.2em;
+    color: var(--accent-color);
+}
+/* ----------------------------------------------- */
+
+
+/* Estilos de búsqueda */
+.search-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.text-input, select.text-input {
+    flex-grow: 1;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--primary-bg);
+    color: var(--text-color);
+    font-size: 1em;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.text-input::placeholder {
+    color: var(--text-light);
+}
+
+#practiceList {
+    list-style: none;
+    padding: 0;
+    max-height: 400px; /* Altura máxima para el scroll del historial */
+    overflow-y: auto; /* Permite scroll vertical */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--primary-bg);
+}
+
+#practiceList li {
+    background-color: var(--primary-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+#practiceList li:last-child {
+    border-bottom: none; /* No hay borde en el último elemento */
+}
+
+#practiceList li:hover {
+    background-color: #252538; /* Ligeramente más claro al pasar el ratón */
+}
+
+#practiceList li span {
+    color: var(--text-light);
+    flex-grow: 1; /* Permite que el texto ocupe el espacio */
+}
+
+#practiceList li button {
+    background-color: var(--accent-color);
+    color: var(--primary-bg);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    margin-left: 10px; /* Espacio a la izquierda del botón */
+}
+
+.status-message {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: rgba(0, 188, 212, 0.1);
+    border: 1px solid var(--accent-color);
+    border-radius: 5px;
+    color: var(--accent-color);
+    font-size: 0.95em;
+    text-align: center;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000; /* Asegura que esté por encima de todo */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: var(--modal-bg);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: var(--secondary-bg);
+    padding: 30px;
+    border: 1px solid var(--accent-color);
+    width: 90%;
+    max-width: 500px;
+    border-radius: 10px;
+    position: relative;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.close-button {
+    color: var(--text-color);
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: var(--accent-color);
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="number"],
+.modal-content textarea { /* Added textarea here */
+    width: calc(100% - 22px);
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: var(--primary-bg);
+    color: var(--text-color);
+    box-sizing: border-box;
+    font-size: 1em;
+}
+
+.modal-content textarea { /* Specific styles for textarea */
+    resize: vertical; /* Allow vertical resizing */
+    min-height: 80px; /* Minimum height for description */
+    max-height: 150px; /* Maximum height for description */
+}
+
+.word-counter { /* Style for word count display */
+    text-align: right;
+    font-size: 0.85em;
+    color: var(--text-light);
+    margin-top: -10px; /* Pull it closer to the textarea */
+    margin-bottom: 10px;
+}
+
+#operatorsContainer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.operator-input {
+    flex-grow: 1;
+    min-width: 150px;
+    margin-bottom: 0 !important;
+}
+
+#addOperator {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    font-size: 1.5em;
+    line-height: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--accent-color); /* Color diferente para el '+' */
+    color: var(--primary-bg);
+    border-radius: 50%; /* Lo hacemos redondo */
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+#addOperator:hover {
+    background-color: #00A6B9; /* Tono de hover para el '+' */
+    transform: translateY(-1px);
+}
+
+#confirmSave {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--button-bg-primary);
+    font-size: 1.1em;
+    margin-top: 10px;
+}
+
+/* Styles for "Acerca de" and "Manual de Uso" sections */
+.info-card ul {
+    list-style: none; /* Remove default bullet points */
+    padding-left: 0;
+    margin-top: 10px;
+}
+
+.info-card ul li {
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.info-card ul li strong {
+    color: var(--accent-color);
+}
+
+/* Developer Info */
+.developer-info {
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.developer-info p {
+    margin-bottom: 10px;
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 15px;
+    flex-wrap: wrap; /* Permite que los enlaces se envuelvan en pantallas pequeñas */
+}
+
+.social-links a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.3s ease;
+    padding: 5px 10px; /* Añadido padding para mejor área de clic */
+    border-radius: 5px; /* Bordes redondeados para los enlaces */
+    background-color: var(--tertiary-bg); /* Fondo sutil para los enlaces */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.social-links a:hover {
+    color: white;
+    background-color: var(--button-hover-secondary);
+}
+
+.social-icon {
+    width: 24px;
+    height: 24px;
+    vertical-align: middle;
+}
+
+/* Footer Styles */
+footer {
+    background-color: var(--secondary-bg);
+    color: var(--text-light);
+    text-align: center;
+    padding: 15px 20px;
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
+    font-size: 0.9em;
+    margin-top: auto; /* Pushes the footer to the bottom */
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+footer p {
+    margin: 5px 0;
+}
+
+footer a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: white;
+}
+
+.social-links-footer {
+    margin-top: 10px;
+}
+
+.social-links-footer a {
+    margin: 0 5px;
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .app-container {
+        flex-direction: column; /* La barra lateral se convierte en una barra superior */
+        margin: 10px;
+        padding: 0; /* Quitar padding del contenedor principal */
+    }
+
+    .sidebar-nav {
+        width: 100%; /* La barra lateral ocupa todo el ancho */
+        flex-direction: row; /* Los botones de navegación se alinean horizontalmente */
+        justify-content: center;
+        flex-wrap: wrap; /* Permite que los botones se envuelvan */
+        padding: 10px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color); /* Borde inferior */
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-button {
+        width: auto; /* Ancho automático para los botones de nav */
+        flex-grow: 1; /* Permite que los botones se estiren */
+        margin: 5px; /* Espacio entre botones */
+        text-align: center;
+        justify-content: center;
+        padding: 10px;
+        font-size: 0.9em;
+    }
+
+    .graph-and-controls {
+        grid-template-columns: 1fr; /* Columna única en pantallas pequeñas */
+    }
+
+    .graph-controls-panel {
+        order: -1; /* Mover el panel de controles encima de la gráfica en móvil */
+    }
+
+    .controls-group {
+        justify-content: center; /* Centrar botones en grupos */
+    }
+
+    button {
+        width: auto; /* Permitir que los botones se ajusten */
+        flex-grow: 1; /* Estirar botones en grupos */
+        min-width: 120px; /* Mínimo para que no se aprieten demasiado */
+    }
+
+    .parameters-grid {
+        grid-template-columns: 1fr; /* Una columna para los parámetros */
+    }
+
+    .developer-info {
+        padding-top: 15px;
+        margin-top: 15px;
+    }
+    .social-links {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    header h1 {
+        font-size: 1.8em;
+    }
+
+    .content-area {
+        padding: 15px;
+    }
+
+    .modal-content {
+        padding: 20px;
+    }
+
+    .operator-input {
+        min-width: unset; /* Quita el ancho mínimo para operadores */
+        width: 100%; /* Ocupa todo el ancho disponible */
+    }
+    #addOperator {
+        width: 100%;
+        border-radius: 5px; /* Vuelve a ser cuadrado en móvil */
+    }
+}

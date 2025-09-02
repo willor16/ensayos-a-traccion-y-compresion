@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Materiales: Curva Esfuerzo-Deformación</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+</head>
+<body>
+    <header>
+        <h1>Análisis de Materiales: Curva Esfuerzo-Deformación</h1>
+    </header>
+
+    <div class="app-container">
+        <nav class="sidebar-nav">
+            <button class="nav-button active" data-section="grafica">
+                <i class="icon-chart"></i> Gráfica
+            </button>
+            <button class="nav-button" data-section="datos-probeta">
+                <i class="icon-specimen"></i> Datos de Probeta
+            </button>
+            <button class="nav-button" data-section="carga-datos">
+                <i class="icon-upload"></i> Carga de Datos
+            </button>
+            <button class="nav-button" data-section="historial">
+                <i class="icon-history"></i> Historial
+            </button>
+            <button class="nav-button" data-section="acerca-de">
+                <i class="icon-info"></i> Acerca de
+            </button>
+            <button class="nav-button" data-section="manual">
+                <i class="icon-manual"></i> Manual de Uso
+            </button>
+        </nav>
+
+        <main class="content-area">
+            <section id="grafica" class="section active">
+                <h2>Curva Esfuerzo-Deformación</h2>
+
+                <div class="graph-and-controls">
+                    <div class="graph-container">
+                        <canvas id="stressStrainChart"></canvas>
+                    </div>
+                    <div class="graph-controls-panel">
+                        <h3>Acciones de Gráfica</h3>
+                        
+                        <div class="controls-group" id="testTypeSelector">
+                            <label>
+                                <input type="radio" name="testType" value="compresion"> Compresión
+                            </label>
+                            <label>
+                                <input type="radio" name="testType" value="traccion"> Tracción
+                            </label>
+                        </div>
+
+                        <div class="controls-group">
+                            <button id="clearGraph">Limpiar Gráfica</button>
+                            <button id="exportPdf">Exportar a PDF</button>
+                            <button id="exportExcel">Exportar a Excel</button> 
+                            <button id="saveRecord">Guardar Registro</button>
+                            <button id="viewFullGraph">Ver Gráfica Completa</button>
+                        </div>
+
+                        <h3>Zonas de la Curva</h3>
+                        <div class="subgraph-buttons controls-group">
+                            <button data-zone="elastica">Zona Elástica</button>
+                            <button data-zone="plastica">Zona Plástica</button>
+                            <button data-zone="cedencia">Zona de Cedencia</button>
+                            <button data-zone="endurecimiento">Zona de Endurecimiento</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-display">
+                    <h3>Parámetros Calculados:</h3>
+                    <div class="parameters-grid">
+                        <p>Módulo de Young: <span id="youngModulus">N/A</span></p>
+                        <p>Límite Elástico: <span id="yieldStrength">N/A</span></p>
+                        <p>Esfuerzo Último: <span id="ultimateStrength">N/A</span></p>
+                        <p>Deformación Máxima: <span id="maxDeformation">N/A</span></p>
+                        <p>Energía de Tenacidad: <span id="toughnessEnergy">N/A</span></p>
+                    </div>
+                </div>
+
+                <div id="practiceInfoDisplay" class="info-panel card" style="display: none;">
+                    <h3>Información de la Práctica Cargada</h3>
+                    <p><strong>Nombre:</strong> <span id="infoPracticeName"></span></p>
+                    <p><strong>Descripción:</strong> <span id="infoPracticeDescription"></span></p>
+                    <p><strong>Operadores:</strong></p>
+                    <ul id="infoOperatorsList"></ul>
+                    <p><strong>Tipo de Ensayo:</strong> <span id="infoTestType"></span></p>
+                    <p><strong>Detalles de la Probeta:</strong> <span id="infoProbetaDetails"></span></p>
+                </div>
+
+            </section>
+
+            <section id="datos-probeta" class="section">
+                <h2>Datos de la Probeta</h2>
+                <div class="card">
+                    <h3>Dimensiones de la Probeta</h3>
+                    <form id="probetaForm">
+                        <div class="form-group">
+                            <label for="probetaTipo">Tipo de Probeta:</label>
+                            <select id="probetaTipo" class="text-input">
+                                <option value="rectangular">Rectangular</option>
+                                <option value="cilindrica">Cilíndrica</option>
+                            </select>
+                        </div>
+
+                        <div id="rectangularDims" class="form-group">
+                            <label for="probetaBase">Base (mm):</label>
+                            <input type="number" id="probetaBase" class="text-input" step="any" placeholder="Ej: 12.5">
+                            <label for="probetaAltura">Altura (mm):</label>
+                            <input type="number" id="probetaAltura" class="text-input" step="any" placeholder="Ej: 6.25">
+                        </div>
+
+                        <div id="cilindricaDims" class="form-group">
+                            <label for="probetaRadio">Radio (mm):</label>
+                            <input type="number" id="probetaRadio" class="text-input" step="any" placeholder="Ej: 5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="probetaLongitudInicial">Longitud Inicial (L₀) (mm) - [Automático]:</label>
+                            <input type="number" id="probetaLongitudInicial" class="text-input" step="any" placeholder="Se calcula al cargar datos" readonly>
+                        </div>
+                    </form>
+
+                    <div class="form-group">
+                    <label for="probetaLongitudDespreciar">Longitud a Despreciar (mm):</label>
+                    <input type="number" id="probetaLongitudDespreciar" class="text-input" step="any" placeholder="Ej: 5">
+                    </div>
+
+
+                    <div class="data-display" style="margin-top: 20px;">
+                        <h3>Área Transversal Calculada:</h3>
+                        <p><span id="areaTransversalResult">N/A</span> mm²</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="carga-datos" class="section">
+                <h2>Carga de Datos</h2>
+                <div class="card">
+                    <h3>Cargar desde Sensor (ESP32)</h3>
+                    <p>Haz clic en el botón para cargar los datos más recientes enviados por el sensor desde Firebase.</p>
+                    <button id="loadFromSensor">Cargar Últimos Datos del Sensor</button>
+                    <div id="sensorDataStatus" class="status-message"></div>
+                </div>
+                </section>
+
+            <section id="historial" class="section">
+                <h2>Historial de Prácticas</h2>
+                <div class="search-container card">
+                    <input type="text" id="searchTerm" placeholder="Buscar por nombre o número de práctica..." class="text-input">
+                    <button id="searchButton" class="primary-button">Buscar</button>
+                </div>
+                <ul id="practiceList" class="card">
+                    <li>No hay registros guardados.</li>
+                </ul>
+            </section>
+
+            <section id="acerca-de" class="section">
+                <h2>Acerca de esta Aplicación</h2>
+                <div class="card info-card">
+                    <h3>Propósito y Funcionalidad</h3>
+                    <p>Esta aplicación web ha sido diseñada como una herramienta educativa y práctica para el análisis de la <strong>Curva Esfuerzo-Deformación</strong> de diversos materiales. Su objetivo principal es facilitar la visualización, el cálculo de propiedades mecánicas clave y la gestión del historial de ensayos.</p>
+                    <p>Entre sus funcionalidades destacadas, la aplicación permite:</p>
+                    <ul>
+                        <li><strong>Visualización Interactiva:</strong> Muestra gráficas de esfuerzo-deformación con capacidad de zoom y navegación por zonas específicas (elástica, cedencia, endurecimiento, fractura).</li>
+                        <li><strong>Cálculo Automático de Parámetros:</strong> Determina automáticamente propiedades cruciales como el Módulo de Young, Límite Elástico, Esfuerzo Último, Deformación Máxima y Energía de Tenacidad.</li>
+                        <li><strong>Gestión de Probetas:</strong> Permite ingresar y calcular el área transversal de probetas rectangulares o cilíndricas.</li>
+                        <li><strong>Integración con Sensores:</strong> Ofrece la capacidad de cargar datos en tiempo real desde un sensor (ESP32) conectado a Firebase, ideal para experimentos de laboratorio en vivo.</li>
+                        <li><strong>Historial de Prácticas:</strong> Guarda un registro detallado de cada ensayo, incluyendo la gráfica, los parámetros calculados y la información de la práctica, facilitando su consulta y análisis posterior.</li>
+                        <li><strong>Exportación de Datos:</strong> Genera informes en formato PDF con la gráfica y los resultados del ensayo, perfectos para documentación o presentaciones.</li>
+                    </ul>
+
+                    <h3>Tecnologías Utilizadas</h3>
+                    <p>La aplicación está construida utilizando un conjunto de tecnologías web robustas y modernas:</p>
+                    <ul>
+                        <li><strong>HTML5:</strong> Para la estructura semántica del contenido.</li>
+                        <li><strong>CSS3:</strong> Para un diseño visualmente atractivo y responsivo, adaptándose a diferentes tamaños de pantalla.</li>
+                        <li><strong>JavaScript:</strong> Como el lenguaje principal para la lógica de la aplicación, interactividad y cálculos.</li>
+                        <li><strong>Chart.js:</strong> Una potente librería de JavaScript para la creación de gráficas dinámicas y personalizables.</li>
+                        <li><strong>Firebase:</strong> Utilizado como base de datos en tiempo real para almacenar y recuperar datos de los sensores (ESP32) y el historial de prácticas, garantizando una experiencia fluida y escalable.</li>
+                        <li><strong>jsPDF & html2canvas:</strong> Para la funcionalidad de exportación a PDF, permitiendo capturar la gráfica y los datos en un formato profesional.</li>
+                    </ul>
+
+                    <h3 style="margin-top: 30px;">Sobre el Desarrollador</h3>
+                    <div class="developer-info">
+                        <p>Hola, mi nombre es Wilmer Choxom, y soy el creador de esta aplicación. Como estudiante y entusiasta de la ingeniería, me apasiona encontrar soluciones innovadoras y aplicar mis conocimientos en el desarrollo de herramientas prácticas.</p>
+                        <p>Este proyecto representa mi dedicación a combinar la teoría de la ciencia de materiales con la programación web, buscando crear una herramienta accesible y útil para otros estudiantes, educadores y profesionales en el campo.</p>
+                        <p>Agradezco tu interés en mi trabajo. Si tienes alguna pregunta, sugerencia o simplemente quieres conectar, no dudes en contactarme a través de mis redes:</p>
+                        <div class="social-links">
+                            <a href="https://www.linkedin.com/in/wilmerchoxom" target="_blank" rel="noopener noreferrer">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/LinkedIn_logo_initials.png/480px-LinkedIn_logo_initials.png" alt="LinkedIn" class="social-icon"> LinkedIn
+                            </a>
+                            <a href="https://www.instagram.com/will_lor77" target="_blank" rel="noopener noreferrer">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/768px-Instagram_logo_2016.svg.png" alt="Instagram" class="social-icon"> Instagram
+                            </a>
+                            <a href="https://github.com/willor16/esfuerzo-deformacion" target="_blank" rel="noopener noreferrer">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/240px-Octicons-mark-github.svg.png" alt="GitHub" class="social-icon"> GitHub (Código Fuente)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="manual" class="section">
+                <h2>Manual de Uso</h2>
+                <div class="card info-card">
+                    <h3>1. Secci&oacute;n "Gr&aacute;fica"</h3>
+                    <p>Esta es la vista principal donde se visualiza la curva de Esfuerzo-Deformación. Aquí podrás:</p>
+                    <ul>
+                        <li><strong>Visualizar la Curva:</strong> Observa la representación gráfica del comportamiento del material bajo carga.</li>
+                        <li><strong>Limpiar Gráfica:</strong> El botón "Limpiar Gráfica" borra los datos actuales de la gráfica y restablece todos los parámetros calculados. Útil para iniciar un nuevo análisis.</li>
+                        <li><strong>Exportar a PDF:</strong> El botón "Exportar a PDF" generará un documento PDF que incluye la gráfica visible y un resumen de los parámetros calculados, ideal para informes o documentación de prácticas.</li>
+                        <li><strong>Guardar Registro:</strong> "Guardar Registro" abrirá una ventana emergente (modal) donde puedes asignar un nombre a la práctica, añadir una descripción y el registro académico de los operadores, para almacenar el ensayo en el historial.</li>
+                        <li><strong>Ver Gráfica Completa:</strong> Si has hecho zoom en una zona o estás viendo una sub-gráfica específica, este botón te regresará a la vista completa de la curva de esfuerzo-deformación.</li>
+                        <li><strong>Explorar Zonas de la Curva:</strong> Los botones de "Zona Elástica", "Zona de Cedencia", "Zona de Endurecimiento" y "Zona de Fractura" te permiten hacer zoom automático en esas regiones críticas de la curva para un análisis más detallado de cada fase del material.</li>
+                    </ul>
+                    <h4>Parámetros Calculados</h4>
+                    <p>En la parte inferior de la sección de gráfica, encontrarás una tabla con los parámetros mecánicos calculados automáticamente a partir de los datos cargados:</p>
+                    <ul>
+                        <li><strong>Módulo de Young:</strong> Indica la rigidez del material.</li>
+                        <li><strong>Límite Elástico:</strong> El esfuerzo máximo que un material puede soportar sin sufrir deformación permanente.</li>
+                        <li><strong>Esfuerzo Último:</strong> La máxima tensión que un material puede soportar antes de fracturarse.</li>
+                        <li><strong>Deformación Máxima:</strong> La deformación total que el material experimenta antes de la falla.</li>
+                        <li><strong>Energía de Tenacidad:</strong> La capacidad del material para absorber energía antes de fracturarse (área bajo la curva).</li>
+                    </ul>
+
+                    <h3>2. Secci&oacute;n "Datos de Probeta"</h3>
+                    <p>Antes de cargar cualquier dato, es fundamental definir las dimensiones de la probeta utilizada en el ensayo. Esto es crucial para el cálculo correcto del esfuerzo (fuerza por unidad de área). En esta sección puedes:</p>
+                    <ul>
+                        <li><strong>Seleccionar Tipo de Probeta:</strong> Elige entre probeta "Rectangular" o "Cilíndrica".</li>
+                        <li><strong>Ingresar Dimensiones:</strong> Dependiendo del tipo seleccionado, deberás introducir la base y altura (para rectangular) o el radio (para cilíndrica), además de la longitud inicial.</li>
+                        <li><strong>Ver Área Transversal Calculada:</strong> Una vez ingresadas las dimensiones, la aplicación calculará y mostrará automáticamente el área transversal de la probeta en mm².</li>
+                    </ul>
+
+                    <h3>3. Secci&oacute;n "Carga de Datos"</h3>
+                    <p>Esta sección te permite importar los datos de fuerza y deformación para generar la curva. Actualmente, soporta la carga de datos desde un sensor ESP32:</p>
+                    <ul>
+                        <li><strong>Cargar Últimos Datos del Sensor:</strong> Al hacer clic en este botón, la aplicación intentará conectarse a tu base de datos Firebase (configurada previamente en el archivo `script.js`) y recuperar los datos más recientes enviados por tu módulo ESP32. Asegúrate de que tu sensor esté enviando datos correctamente a la ruta de Firebase designada.</li>
+                        <li><strong>Mensajes de Estado:</strong> Una barra de estado te informará si la carga fue exitosa o si hubo algún problema.</li>
+                    </ul>
+
+                    <h3>4. Secci&oacute;n "Historial de Pr&aacute;cticas"</h3>
+                    <p>Aquí puedes gestionar y consultar todos los ensayos de esfuerzo-deformación que hayas guardado previamente:</p>
+                    <ul>
+                        <li><strong>Buscar Prácticas:</strong> Utiliza la barra de búsqueda para encontrar registros por "Nombre de la Práctica" o "Registro Académico".</li>
+                        <li><strong>Listado de Prácticas:</strong> Se mostrará una lista de todas las prácticas guardadas. Cada elemento de la lista incluirá el nombre de la práctica y un botón para "Cargar".</li>
+                        <li><strong>Cargar Práctica:</strong> Al hacer clic en "Cargar" en cualquier elemento de la lista, los datos de esa práctica específica, su gráfica y sus parámetros calculados se cargarán en la sección "Gráfica" para su revisión.</li>
+                    </ul>
+
+                    <h3>5. Secci&oacute;n "Acerca de"</h3>
+                    <p>En esta sección encontrarás información detallada sobre la aplicación, su propósito, las tecnologías que la componen y una breve introducción al desarrollador.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="saveModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Guardar Nuevo Registro</h2>
+            <label for="practiceName">Nombre de la Práctica:</label>
+            <input type="text" id="practiceName">
+
+            <label for="practiceDescription">Descripci&oacute;n de la Pr&aacute;ctica:</label>
+            <textarea id="practiceDescription" maxlength="500" placeholder="A&ntilde;ade una descripci&oacute;n breve de la pr&aacute;ctica (m&aacute;x. 500 palabras)."></textarea>
+            <div id="wordCount" class="word-counter">0 / 500 palabras</div>
+
+            <div id="operatorsContainer">
+                <label for="operatorInput1">Registro Académico:</label>
+                <input type="text" id="operatorInput1" name="operator" class="operator-input" placeholder="Ej: No. de Carnet del operador">
+                <button id="addOperator" type="button">+</button>
+            </div>
+
+            <button id="confirmSave">Confirmar Guardar</button>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2025 fab-lab. Todos los derechos reservados.</p>
+            <p>Licencia: <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer">MIT License</a></p>
+            <p>Desarrollado por Wilmer Choxom</p>
+            <div class="social-links-footer">
+                <a href="https://www.linkedin.com/in/wilmerchoxom" target="_blank" rel="noopener noreferrer">LinkedIn</a> |
+                <a href="https://www.instagram.com/will_lor77" target="_blank" rel="noopener noreferrer">Instagram</a> |
+                <a href="https://github.com/willor16/esfuerzo-deformacion" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
