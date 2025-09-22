@@ -332,7 +332,6 @@ async function saveRecordToFirebase(data) {
     if (!database) { showLightbox('Error de Conexión', 'No se pudo conectar con la base de datos.'); return; }
     const probetaData = { tipo: probetaTipoSelect.value, base: parseFloat(probetaBaseInput.value) || 0, altura: parseFloat(probetaAlturaInput.value) || 0, radio: parseFloat(probetaRadioInput.value) || 0, longitudInicial: probetaLM, area: probetaArea };
     
-    // --- ▼▼▼ MODIFICACIÓN 1: Añadir los datos crudos al registro ▼▼▼ ---
     const record = { 
         date: new Date().toISOString().slice(0, 10), 
         practiceName: data.practiceName, 
@@ -341,9 +340,8 @@ async function saveRecordToFirebase(data) {
         testType: currentTestType, 
         probeta: probetaData, 
         curveData: JSON.stringify(currentData),
-        rawSensorData: JSON.stringify(rawReadings) // ¡Aquí se guardan los datos crudos!
+        rawSensorData: JSON.stringify(rawReadings)
     };
-    // --- ▲▲▲ FIN DE LA MODIFICACIÓN 1 ▲▲▲ ---
 
     try {
         await database.ref('practices').push(record);
@@ -377,16 +375,13 @@ function loadSpecificPractice(key) {
             currentPracticeInfo = practice;
             currentData = JSON.parse(practice.curveData);
             
-            // --- ▼▼▼ MODIFICACIÓN 2: Cargar los datos crudos desde el historial ▼▼▼ ---
             if (practice.rawSensorData) {
                 rawReadings = JSON.parse(practice.rawSensorData);
-                if(exportExcelBtn) exportExcelBtn.disabled = false; // Habilitar el botón de Excel
+                if(exportExcelBtn) exportExcelBtn.disabled = false;
             } else {
-                // Para registros antiguos que no tengan los datos crudos
                 rawReadings = [];
                 if(exportExcelBtn) exportExcelBtn.disabled = true;
             }
-            // --- ▲▲▲ FIN DE LA MODIFICACIÓN 2 ▲▲▲ ---
 
             infoPracticeName.textContent = practice.practiceName;
             infoPracticeDescription.textContent = practice.practiceDescription || 'N/A';
@@ -421,6 +416,26 @@ function switchSection(sectionId) {
     navButtons.forEach(b => b.classList.toggle('active', b.dataset.section === sectionId));
     if (sectionId === 'historial') loadPracticeHistory();
 }
+
+/**
+ * Aplica un filtro de media móvil a un conjunto de datos.
+ * @param {Array} data - El array de puntos {strain, stress}.
+ * @param {number} windowSize - El tamaño de la ventana para el promedio.
+ * @returns {Array} - El array de datos suavizados.
+ */
+function applyMovingAverage(data, windowSize) {
+    if (windowSize < 2) return data;
+    const smoothed = [];
+    for (let i = 0; i < data.length; i++) {
+        const start = Math.max(0, i - Math.floor(windowSize / 2));
+        const end = Math.min(data.length, i + Math.floor(windowSize / 2) + 1);
+        const windowSlice = data.slice(start, end);
+        const avgStress = windowSlice.reduce((sum, p) => sum + p.stress, 0) / windowSlice.length;
+        smoothed.push({ strain: data[i].strain, stress: avgStress });
+    }
+    return smoothed;
+}
+
 
 async function loadLatestSensorData(isAutoLoad = false) {
     if (!isAutoLoad) {
@@ -470,9 +485,14 @@ async function loadLatestSensorData(isAutoLoad = false) {
         
         processedData.sort((a, b) => a.strain - b.strain);
 
+        // --- ▼▼▼ INICIO DE LA NUEVA LÓGICA DE FILTRADO ADAPTATIVO ▼▼▼ ---
+
+        let finalDataForChart = [];
+        const MINIMUM_POINTS_FOR_FILTERING = 10; // Umbral de puntos para considerar un filtro válido
+
+        // CASO 3: Intento con el filtro agresivo (envolvente) primero. Es el ideal para datos limpios.
         const envelopeData = [];
         let maxStressEncountered = 0;
-
         for (const point of processedData) {
             if (point.stress >= maxStressEncountered) {
                 envelopeData.push(point);
@@ -480,10 +500,32 @@ async function loadLatestSensorData(isAutoLoad = false) {
             }
         }
 
-        currentData = envelopeData.filter(p => p.strain >= 0);
+        if (envelopeData.length >= MINIMUM_POINTS_FOR_FILTERING) {
+            console.log("Estrategia de filtrado: Envolvente Agresiva (Caso 3). Datos de buena calidad.");
+            finalDataForChart = envelopeData;
+        } else {
+            // CASO 2: Si el filtro agresivo falló, se prueba un suavizado suave (media móvil).
+            const MOVING_AVG_WINDOW = 5; // Ventana pequeña para no distorsionar la curva
+            const smoothedData = applyMovingAverage(processedData, MOVING_AVG_WINDOW);
+            
+            if (smoothedData.length >= MINIMUM_POINTS_FOR_FILTERING) {
+                console.log("Estrategia de filtrado: Media Móvil Suave (Caso 2). Se detectó ruido en los datos.");
+                finalDataForChart = smoothedData;
+            } else {
+                // CASO 1: Como último recurso, se usan los datos procesados sin ningún filtro.
+                console.log("Estrategia de filtrado: Sin filtro (Caso 1). Se graficarán los datos crudos procesados.");
+                finalDataForChart = processedData;
+            }
+        }
+
+        // Se aplica un filtro final para asegurar que no haya deformación negativa antes de asignar los datos.
+        currentData = finalDataForChart.filter(p => p.strain >= 0);
+
+        // --- ▲▲▲ FIN DE LA NUEVA LÓGICA DE FILTRADO ADAPTATIVO ▲▲▲ ---
 
         if (currentData.length < 2) {
-            showLightbox("Datos Inconsistentes", "No hay suficientes datos válidos para la gráfica.");
+            // Este mensaje ahora es más específico, aparece si incluso sin filtros no hay datos válidos.
+            showLightbox("Datos Inconsistentes", "Después de procesar, no hay suficientes datos válidos para la gráfica. Revisa las lecturas del sensor.");
             return;
         }
 
@@ -499,6 +541,7 @@ async function loadLatestSensorData(isAutoLoad = false) {
         loadFromSensorBtn.textContent = 'Cargar Últimos Datos del Sensor';
     }
 }
+
 
 function exportToExcel() {
     if (rawReadings.length === 0) {
@@ -548,10 +591,8 @@ document.addEventListener('DOMContentLoaded', () => {
     exportPdfBtn?.addEventListener('click', () => {
         if (currentData.length === 0) { showLightbox('Sin Datos', 'No hay datos para exportar.'); return; }
         if (currentPracticeInfo) {
-            // Si ya hay una práctica cargada (del historial), no es necesario pedir datos de nuevo.
             generatePdfWithInfo(currentPracticeInfo);
         } else { 
-            // Si es un ensayo nuevo, pedimos los datos antes de generar el PDF.
             modalAction = 'pdf'; 
             showSaveModal(); 
         }
